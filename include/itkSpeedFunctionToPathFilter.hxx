@@ -63,7 +63,7 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
  *
  */
 template<class TInputImage, class TOutputPath>
-const typename SpeedFunctionToPathFilter<TInputImage,TOutputPath>::PointType &
+const typename SpeedFunctionToPathFilter<TInputImage,TOutputPath>::PointTypeVec &
 SpeedFunctionToPathFilter<TInputImage,TOutputPath>
 ::GetNextEndPoint()
 {
@@ -97,49 +97,76 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
 
   // Add next and previous front sources as target points to
   // limit the front propagation to just the required zones
-  IndexType indexTargetPrevious;
-  IndexType indexTargetNext;
-  speed->TransformPhysicalPointToIndex
-    (
-    m_Information[Superclass::m_CurrentOutput]->PeekPreviousFront(),
-    indexTargetPrevious
-    );
-  speed->TransformPhysicalPointToIndex
-    (
-    m_Information[Superclass::m_CurrentOutput]->PeekNextFront(),
-    indexTargetNext
-    );
-  NodeType nodeTargetPrevious;
-  NodeType nodeTargetNext;
-  nodeTargetPrevious.SetValue( 0.0 );
-  nodeTargetNext.SetValue( 0.0 );
-  nodeTargetPrevious.SetIndex( indexTargetPrevious );
-  nodeTargetNext.SetIndex( indexTargetNext );
+  PointTypeVec PrevFront = m_Information[Superclass::m_CurrentOutput]->PeekPreviousFront();
+  PointTypeVec NextFront = m_Information[Superclass::m_CurrentOutput]->PeekNextFront();
+  typedef std::vector < IndexType > IndexTypeVec;
+  IndexTypeVec NextIndexVec(0);
+
+  
   typename NodeContainer::Pointer targets = NodeContainer::New();
   targets->Initialize();
-  targets->InsertElement( 0, nodeTargetPrevious );
-  targets->InsertElement( 1, nodeTargetNext );
+
+  for (typename PointTypeVec::iterator it = PrevFront.begin(); it != PrevFront.end(); it++)
+    {
+      IndexType indexTargetPrevious;
+      NodeType nodeTargetPrevious;
+      speed->TransformPhysicalPointToIndex( *it, indexTargetPrevious );
+      nodeTargetPrevious.SetValue( 0.0 );
+      nodeTargetPrevious.SetIndex( indexTargetPrevious );
+      targets->InsertElement( 0, nodeTargetPrevious );
+    }
+  
+  for (typename PointTypeVec::iterator it = NextFront.begin(); it != NextFront.end(); it++)
+    {
+      IndexType indexTargetNext;
+      NodeType nodeTargetNext;
+      speed->TransformPhysicalPointToIndex( *it, indexTargetNext );
+      nodeTargetNext.SetValue( 0.0 );
+      nodeTargetNext.SetIndex( indexTargetNext );
+      targets->InsertElement( 1, nodeTargetNext );
+      NextIndexVec.push_back(indexTargetNext);
+    }
   marching->SetTargetPoints( targets );
 
   // Get the next Front source point and add as trial point
-  IndexType indexTrial;
-  speed->TransformPhysicalPointToIndex
-    (
-    m_Information[Superclass::m_CurrentOutput]->GetCurrentFrontAndAdvance(),
-    indexTrial
-    );
-  NodeType nodeTrial;
-  nodeTrial.SetValue( 0.0 );
-  nodeTrial.SetIndex( indexTrial );
   typename NodeContainer::Pointer trial = NodeContainer::New();
   trial->Initialize();
-  trial->InsertElement( 0, nodeTrial );
+  PointTypeVec CurrentFront =   m_Information[Superclass::m_CurrentOutput]->GetCurrentFrontAndAdvance();
+  std::cout << PrevFront[0] << CurrentFront[0] << NextFront[0] << std::endl;
+
+  for (typename PointTypeVec::iterator it = CurrentFront.begin(); it != CurrentFront.end(); it++)
+    {
+      IndexType indexTrial;
+      NodeType nodeTrial;
+      speed->TransformPhysicalPointToIndex( *it, indexTrial );
+      nodeTrial.SetValue( 0.0 );
+      nodeTrial.SetIndex( indexTrial );
+      trial->InsertElement( 0, nodeTrial );
+    }
   marching->SetTrialPoints( trial );
 
   // Update the method and set the arrival function
   marching->UpdateLargestPossibleRegion( );
   m_CurrentArrivalFunction = marching->GetOutput( );
   m_CurrentArrivalFunction->DisconnectPipeline( );
+  
+  // Only the index with the minimum arrival time should stay in the "Next" point set
+  // We've advanced, so we set the current to a single point
+  if (NextFront.size() > 1) {
+    InputImagePixelType MinTime = itk::NumericTraits<InputImagePixelType>::max();
+    unsigned MinPos(0);
+    for (unsigned idx = 0; idx < NextIndexVec.size(); ++idx)
+      {
+        InputImagePixelType V =  m_CurrentArrivalFunction->GetPixel(NextIndexVec[idx]);
+        if (V < MinTime)
+          {
+            MinPos = idx;
+            MinTime=V;
+          }
+      }
+    std::cout << MinPos << " " << MinTime << " " << NextFront[MinPos] << std::endl;
+    m_Information[Superclass::m_CurrentOutput]->SetCurrent(NextFront[MinPos]);
+  }
   return m_CurrentArrivalFunction;
 }
 

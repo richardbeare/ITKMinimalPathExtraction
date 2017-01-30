@@ -103,7 +103,8 @@ public:
   typedef typename Superclass::OptimizerType       OptimizerType;
 
   /** Path information typedef. */
-  typedef SpeedFunctionPathInformation<PointType> PathInformationType;
+  typedef SpeedFunctionPathInformation<PointType>    PathInformationType;
+  typedef typename PathInformationType::PointTypeVec PointTypeVec;
 
   /** Override superclass behaviour.
    *  Warning: SetPathEndPoint() is not valid for this filter.
@@ -163,7 +164,7 @@ protected:
   virtual InputImageType * ComputeArrivalFunction( ) ITK_OVERRIDE;
 
   /** Override handling of optimizer iteration events to accomodate way points. */
-  virtual const PointType & GetNextEndPoint( ) ITK_OVERRIDE;
+  virtual const PointTypeVec & GetNextEndPoint( ) ITK_OVERRIDE;
 
   std::vector< typename PathInformationType::Pointer > m_Information;
   InputImagePointer                                    m_CurrentArrivalFunction;

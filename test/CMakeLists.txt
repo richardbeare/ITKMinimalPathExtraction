@@ -10,6 +10,7 @@ set( _test
 Test_SpeedToPath_GradientDescent_2D.cxx
 Test_SpeedToPath_GradientDescent_3D.cxx
 Test_SpeedToPath_IterateNeighborhood_2D.cxx
+Test_SpeedToPath_IterateNeighborhood_ExtendedSeed_2D.cxx
 Test_SpeedToPath_IterateNeighborhood_3D.cxx
 Test_SpeedToPath_RegularStepGradientDescent_2D.cxx
 Test_SpeedToPath_RegularStepGradientDescent_3D.cxx
@@ -59,6 +60,16 @@ add_test(
     ${TESTING_OUTPUT_PATH}/Synthetic-01-IterateNeighborhood.png
     ${DATA_DIR}/Synthetic-01-Speed.mhd
     ${DATA_DIR}/Synthetic-01.path
+    1.0
+    1.0
+)
+add_test(
+  NAME MinimalPathExtraction_Synthetic_01_NeighborhoodIterate_ExtendedSeed
+  COMMAND MinimalPathExtractionTestDriver
+    Test_SpeedToPath_IterateNeighborhood_ExtendedSeed_2D
+    ${TESTING_OUTPUT_PATH}/Synthetic-01-IterateNeighborhood_extended.png
+    ${DATA_DIR}/Synthetic-01-Speed.mhd
+    ${DATA_DIR}/Synthetic-01_seed.png
     1.0
     1.0
 )
