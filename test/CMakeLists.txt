@@ -23,6 +23,7 @@ CreateTestDriver( MinimalPathExtraction "${MinimalPathExtraction-Test_LIBRARIES}
 add_test(
   NAME MinimalPathExtraction_Noise_01_NeighborhoodIterate
   COMMAND MinimalPathExtractionTestDriver
+    --compare ${TESTING_OUTPUT_PATH}/Noise-01-IterateNeighborhood.png ${CMAKE_CURRENT_SOURCE_DIR}/baseline/Noise-01-IterateNeighborhood.png
     Test_SpeedToPath_IterateNeighborhood_2D
     ${TESTING_OUTPUT_PATH}/Noise-01-IterateNeighborhood.png
     ${DATA_DIR}/Noise-01-Speed.mhd
