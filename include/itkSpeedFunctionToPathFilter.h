@@ -149,6 +149,9 @@ public:
   /** Handle optimizer iteration events. */
   virtual void Execute( const itk::Object * object, const itk::EventObject & event ) ITK_OVERRIDE;
 
+  /** access the arrival image for debugging purposes */
+  itkGetConstMacro( CurrentArrivalFunction, InputImagePointer );
+
 protected:
   SpeedFunctionToPathFilter( );
   ~SpeedFunctionToPathFilter( );

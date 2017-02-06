@@ -78,7 +78,6 @@ public:
 
   void AddWayPoint( const PointType & way );
 
-  void SetCurrent( const PointType & current );
 
   /** Methods for adding extended path components **/
   void SetStartPoint( const PointTypeVec & start );
@@ -87,7 +86,17 @@ public:
 
   void AddWayPoint( const PointTypeVec & way );
 
-  void SetCurrent( const PointTypeVec & current );
+  // methods for modifying path seeds - needed when using
+  // an extended seed.
+  void SetCurrent( const PointTypeVec & newcurrent );
+  void SetPrevious( const PointTypeVec & newprevious );
+  void SetNext( const PointTypeVec & newnext );
+  
+  void SetCurrent( const PointType & current );
+  void SetPrevious( const PointType & newprevious );
+  void SetNext( const PointType & newnext );
+
+  void Advance();
 
   unsigned int GetNumberOfPoints( ) const;
 
@@ -106,7 +115,7 @@ public:
   const PointTypeVec & PeekNextFront( ) const;
 
   const PointTypeVec & PeekPreviousFront( ) const;
-
+  
 
 protected:
   SpeedFunctionPathInformation( );
@@ -117,6 +126,12 @@ protected:
   SizeValueType               m_Front;
 
 
+  PointTypeVec PtoPVec(const PointType & P)
+  {
+    PointTypeVec V(1);
+    V[0]=P;
+    return(V);
+  }
 private:
   ITK_DISALLOW_COPY_AND_ASSIGN(SpeedFunctionPathInformation);
 };

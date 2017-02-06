@@ -59,7 +59,7 @@ add_test(
     Test_SpeedToPath_IterateNeighborhood_2D
     ${TESTING_OUTPUT_PATH}/Synthetic-01-IterateNeighborhood.png
     ${DATA_DIR}/Synthetic-01-Speed.mhd
-    ${DATA_DIR}/Synthetic-01.b.path
+    ${DATA_DIR}/Synthetic-01.path
     1.0
     1.0
 )

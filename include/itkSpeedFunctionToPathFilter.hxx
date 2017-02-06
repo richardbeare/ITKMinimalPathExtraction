@@ -100,7 +100,7 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
   PointTypeVec PrevFront = m_Information[Superclass::m_CurrentOutput]->PeekPreviousFront();
   PointTypeVec NextFront = m_Information[Superclass::m_CurrentOutput]->PeekNextFront();
   typedef std::vector < IndexType > IndexTypeVec;
-  IndexTypeVec NextIndexVec(0);
+  IndexTypeVec PrevIndexVec(0);
 
   
   typename NodeContainer::Pointer targets = NodeContainer::New();
@@ -114,6 +114,7 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
       nodeTargetPrevious.SetValue( 0.0 );
       nodeTargetPrevious.SetIndex( indexTargetPrevious );
       targets->InsertElement( 0, nodeTargetPrevious );
+      PrevIndexVec.push_back(indexTargetPrevious);
     }
   
   for (typename PointTypeVec::iterator it = NextFront.begin(); it != NextFront.end(); it++)
@@ -124,16 +125,14 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
       nodeTargetNext.SetValue( 0.0 );
       nodeTargetNext.SetIndex( indexTargetNext );
       targets->InsertElement( 1, nodeTargetNext );
-      NextIndexVec.push_back(indexTargetNext);
     }
   marching->SetTargetPoints( targets );
 
   // Get the next Front source point and add as trial point
   typename NodeContainer::Pointer trial = NodeContainer::New();
   trial->Initialize();
-  PointTypeVec CurrentFront =   m_Information[Superclass::m_CurrentOutput]->GetCurrentFrontAndAdvance();
-  std::cout << PrevFront[0] << CurrentFront[0] << NextFront[0] << std::endl;
-  std::cout << PrevFront.size() << " " << CurrentFront.size() << " " << NextFront.size() << std::endl;
+  PointTypeVec CurrentFront =   m_Information[Superclass::m_CurrentOutput]->PeekCurrentFront(); //FrontAndAdvance();
+  IndexTypeVec CurrentIndexVec(0);
 
   for (typename PointTypeVec::iterator it = CurrentFront.begin(); it != CurrentFront.end(); it++)
     {
@@ -143,6 +142,7 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
       nodeTrial.SetValue( 0.0 );
       nodeTrial.SetIndex( indexTrial );
       trial->InsertElement( 0, nodeTrial );
+      CurrentIndexVec.push_back(indexTrial);
     }
   marching->SetTrialPoints( trial );
 
@@ -150,24 +150,35 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
   marching->UpdateLargestPossibleRegion( );
   m_CurrentArrivalFunction = marching->GetOutput( );
   m_CurrentArrivalFunction->DisconnectPipeline( );
-  
-  // Only the index with the minimum arrival time should stay in the "Next" point set
-  // We've advanced, so we set the current to a single point
-  if (NextFront.size() > 1) {
-    InputImagePixelType MinTime = itk::NumericTraits<InputImagePixelType>::max();
-    unsigned MinPos(0);
-    for (unsigned idx = 0; idx < NextIndexVec.size(); ++idx)
-      {
-        InputImagePixelType V =  m_CurrentArrivalFunction->GetPixel(NextIndexVec[idx]);
-        if (V < MinTime)
-          {
-            MinPos = idx;
-            MinTime=V;
-          }
-      }
-    std::cout << MinPos << " " << MinTime << " " << NextFront[MinPos] << std::endl;
-    m_Information[Superclass::m_CurrentOutput]->SetCurrent(NextFront[MinPos]);
+
+  // Only the index with the minimum arrival time should stay in the "Previous" point set
+  // This will be used to initialise the optimizer
+  if (PrevFront.size() > 1) {
+     InputImagePixelType MinTime = itk::NumericTraits<InputImagePixelType>::max();
+     unsigned MinPos(0);
+     for (unsigned idx = 0; idx < PrevIndexVec.size(); ++idx)
+       {
+         InputImagePixelType V =  m_CurrentArrivalFunction->GetPixel(PrevIndexVec[idx]);
+         if (V < MinTime)
+           {
+             MinPos = idx;
+             MinTime=V;
+           }
+       }
+     m_Information[Superclass::m_CurrentOutput]->SetPrevious(PrevFront[MinPos]);
   }
+
+  // Make the arrival function flat inside the seeds, otherwise the
+  // optimizer will cross over them. This only matters if the seeds are extended
+  if (CurrentIndexVec.size() > 1)
+    {
+      for (typename IndexTypeVec::iterator vi = CurrentIndexVec.begin(); vi != CurrentIndexVec.end(); vi++)
+        {
+          m_CurrentArrivalFunction->SetPixel(*vi, 0);
+        }
+    }
+  
+  m_Information[Superclass::m_CurrentOutput]->Advance();
   return m_CurrentArrivalFunction;
 }
 
@@ -231,6 +242,7 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
     }
   if ( !valid ) return;
 
+
   // Check if we have reached the termination value
   if ( currentValue < Superclass::m_TerminationValue &&
        m_Information[Superclass::m_CurrentOutput]->HasNextFront() )
@@ -240,7 +252,12 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
 
     // TODO: The path has not actually reached the path point.
     //       Change the next front point to be the current point.
-
+    // only the arrival point reached by the optimizer should be included in
+    // the extended point set
+      if (m_Information[Superclass::m_CurrentOutput]->PeekPreviousFront().size() > 1)
+        {
+          m_Information[Superclass::m_CurrentOutput]->SetPrevious( point );
+        }
     // Update the arrival function and re-initialise the cost function
     Superclass::m_CostFunction->SetImage( this->ComputeArrivalFunction( ) );
     Superclass::m_CostFunction->Initialize( );
