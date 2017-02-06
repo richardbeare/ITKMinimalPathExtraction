@@ -656,7 +656,8 @@ int Test_SpeedToPath_IterateNeighborhood_ExtendedSeed_ND(int argc, char* argv[])
         typename PathFilterType::CostFunctionType::Pointer cost =
             PathFilterType::CostFunctionType::New();
         cost->SetInterpolator( interp );
-
+	cost->SetMinimize();
+	
         // Create IterateNeighborhoodOptimizer
         typedef itk::IterateNeighborhoodOptimizer OptimizerType;
         typename OptimizerType::Pointer optimizer = OptimizerType::New();
