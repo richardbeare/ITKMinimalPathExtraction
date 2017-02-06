@@ -159,10 +159,10 @@ int ReadPathImage( const char * PathImagename, typename PathFilterType::Pointer 
       }
     typename PathInfoType::Pointer info = PathInfoType::New();
 
-    for (unsigned ii = 0; ii < pmap[1].size(); ++ii)
-      {
-	std::cout << pmap[1][ii] << std::endl;
-      }
+    /* for (unsigned ii = 0; ii < pmap[1].size(); ++ii) */
+    /*   { */
+    /* 	std::cout << pmap[1][ii] << std::endl; */
+    /*   } */
     
     info->SetStartPoint(pmap[1]);
     info->SetEndPoint(pmap[2]);

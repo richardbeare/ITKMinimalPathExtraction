@@ -133,6 +133,7 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
   trial->Initialize();
   PointTypeVec CurrentFront =   m_Information[Superclass::m_CurrentOutput]->GetCurrentFrontAndAdvance();
   std::cout << PrevFront[0] << CurrentFront[0] << NextFront[0] << std::endl;
+  std::cout << PrevFront.size() << " " << CurrentFront.size() << " " << NextFront.size() << std::endl;
 
   for (typename PointTypeVec::iterator it = CurrentFront.begin(); it != CurrentFront.end(); it++)
     {
