@@ -16,6 +16,7 @@ itk_module(MinimalPathExtraction
     ITKOptimizers
     ITKPath
     ITKFastMarching
+    ITKIOImageBase
   TEST_DEPENDS
     ITKTestKernel
     ITKIOSpatialObjects

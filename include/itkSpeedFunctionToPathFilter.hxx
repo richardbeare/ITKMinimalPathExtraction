@@ -21,8 +21,7 @@
 #include "itkMath.h"
 #include "itkSpeedFunctionToPathFilter.h"
 #include "itkFastMarchingUpwindGradientImageFilter.h"
-
-
+#include "itkImageFileWriter.h"
 namespace itk
 {
 
@@ -82,7 +81,6 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
   // Get the speed image
   InputImagePointer speed =
     const_cast< InputImageType * >( this->GetInput() );
-
   // Set the fast marching method for computing the arrival function
   using FastMarchingType = FastMarchingUpwindGradientImageFilter< TInputImage, TInputImage >;
 
@@ -91,7 +89,7 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
   typename FastMarchingType::Pointer marching = FastMarchingType::New();
   marching->SetInput( speed );
   marching->SetGenerateGradientImage( false );
-  marching->SetTargetOffset( 2.0 * Superclass::m_TerminationValue );
+  marching->SetTargetOffset( 2.0 );
   marching->SetTargetReachedModeToAllTargets( );
 
   // Add next and previous front sources as target points to
@@ -110,6 +108,7 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
       IndexType indexTargetPrevious;
       NodeType nodeTargetPrevious;
       speed->TransformPhysicalPointToIndex( *it, indexTargetPrevious );
+      std::cout << "itp" << indexTargetPrevious << std::endl;
       nodeTargetPrevious.SetValue( 0.0 );
       nodeTargetPrevious.SetIndex( indexTargetPrevious );
       targets->InsertElement( 0, nodeTargetPrevious );
@@ -121,6 +120,7 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
       IndexType indexTargetNext;
       NodeType nodeTargetNext;
       speed->TransformPhysicalPointToIndex( *it, indexTargetNext );
+      std::cout << "itn" << indexTargetNext << std::endl;
       nodeTargetNext.SetValue( 0.0 );
       nodeTargetNext.SetIndex( indexTargetNext );
       targets->InsertElement( 1, nodeTargetNext );
@@ -150,6 +150,12 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
   m_CurrentArrivalFunction = marching->GetOutput( );
   m_CurrentArrivalFunction->DisconnectPipeline( );
 
+  typedef itk::ImageFileWriter<TInputImage>  WriterType;
+  typename WriterType::Pointer writer = WriterType::New();
+  writer->SetInput(m_CurrentArrivalFunction);
+  writer->SetFileName("arrival.mha");
+  writer->Update();
+  
   // Only the index with the minimum arrival time should stay in the "Previous" point set
   // This will be used to initialise the optimizer
   if (PrevFront.size() > 1) {
