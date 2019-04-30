@@ -89,7 +89,19 @@ add_test(
     ${DATA_DIR}/Synthetic-01.path
     1.0
     1000
+    )
+add_test(
+  NAME MinimalPathExtraction_Synthetic_01_small_pix_GradientDescent
+  COMMAND MinimalPathExtractionTestDriver
+    --compare ${TESTING_OUTPUT_PATH}/Synthetic-01-GradientDescent_smallpix.png ${BASELINE_DIR}/Synthetic-01-GradientDescent.png
+    Test_SpeedToPath_GradientDescent_2D
+    ${TESTING_OUTPUT_PATH}/Synthetic-01-GradientDescent_smallpix.png
+    ${DATA_DIR}/Synthetic-01-Speed_smallpix.mhd
+    ${DATA_DIR}/Synthetic-01_smallpix.path
+    0.1
+    1000
 )
+
 add_test(
   NAME MinimalPathExtraction_Synthetic_01_RegularStepGradientDescent
   COMMAND MinimalPathExtractionTestDriver
