@@ -139,7 +139,7 @@ protected:
 
 private:
   typename InterpolateImageFunctionType::Pointer m_Interpolator;
-
+  TCoordRep m_IllegalValue;
 };
 
 } // end namespace itk
