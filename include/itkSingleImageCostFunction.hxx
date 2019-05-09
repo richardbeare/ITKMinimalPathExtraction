@@ -63,6 +63,7 @@ SingleImageCostFunction<TImage>
     m_GradientImageFunction = GradientImageFunctionType::New();
     }
 
+  m_GradientImageFunction->SetInterpolator(m_Interpolator);
   // If the image is provided by a source, update the source.
   if( m_Image->GetSource() )
     {

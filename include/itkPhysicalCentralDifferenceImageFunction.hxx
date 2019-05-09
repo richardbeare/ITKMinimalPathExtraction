@@ -30,7 +30,7 @@ template <class TInputImage, class TCoordRep>
 PhysicalCentralDifferenceImageFunction<TInputImage,TCoordRep>
 ::PhysicalCentralDifferenceImageFunction()
 {
-  m_Interpolator = InterpolateImageFunctionType::New();
+  m_Interpolator = DefaultInterpolatorType::New();
 }
 
 
