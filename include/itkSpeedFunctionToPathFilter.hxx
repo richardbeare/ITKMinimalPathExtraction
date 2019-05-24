@@ -21,7 +21,7 @@
 #include "itkMath.h"
 #include "itkSpeedFunctionToPathFilter.h"
 #include "itkFastMarchingUpwindGradientImageFilter.h"
-
+#include <itkConstNeighborhoodIterator.h>
 
 namespace itk
 {
@@ -70,6 +70,32 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
   return m_Information[Superclass::m_CurrentOutput]->GetEndPoint();
 }
 
+/**
+* take a collection of indexes and produce the equivalent of a
+* dilated version.
+*/
+
+template<typename TInputImage, typename TOutputPath>
+typename SpeedFunctionToPathFilter<TInputImage,TOutputPath>::IndexTypeVec
+SpeedFunctionToPathFilter<TInputImage,TOutputPath>
+::GetNeighbors(IndexTypeVec idxs)
+{
+  InputImagePointer speed =
+    const_cast< InputImageType * >( this->GetInput() );
+
+  using IndexTypeSet = typename std::set < IndexType >;
+
+  IndexTypeSet UniqueIndexes;
+
+  ConstNeighborhoodIterator<InputImageType> niterator(1, speed, speed->GetLargestPossibleRegion());
+  
+  for (auto it = idxs.begin(); it != idxs.end(); it++ )
+    {
+    UniqueIndexes.insert(*it);
+    
+    }
+
+}
 
 /**
  *
@@ -92,12 +118,11 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
   marching->SetInput( speed );
   marching->SetGenerateGradientImage( false );
   marching->SetTargetReachedModeToAllTargets( );
-  //  marching->SetTargetOffset( 2.0 * Superclass::m_TerminationValue);
+  // marching->SetTargetOffset( 2.0 * Superclass::m_TerminationValue);
   // Add next and previous front sources as target points to
   // limit the front propagation to just the required zones
   PointsContainerType PrevFront = m_Information[Superclass::m_CurrentOutput]->PeekPreviousFront();
   PointsContainerType NextFront = m_Information[Superclass::m_CurrentOutput]->PeekNextFront();
-  using IndexTypeVec = std::vector < IndexType >;
   IndexTypeVec PrevIndexVec(0);
   IndexTypeVec NextIndexVec(0);
   
@@ -126,8 +151,14 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
       NextIndexVec.push_back(indexTargetNext);
     }
 
+  IndexTypeVec AllTargets( PrevIndexVec );
+  AllTargets.insert(AllTargets.end(), NextIndexVec.begin(), NextIndexVec.end());
+  
+  GetNeighbors( AllTargets );
+  // Add neighbours of all the targets points to ensure that the
+  // gradients in the neighborhood of each potential destination point
+  // is smooth.
   marching->SetTargetPoints( targets );
-
 
   // Get the next Front source point and add as trial point
   typename NodeContainer::Pointer trial = NodeContainer::New();
