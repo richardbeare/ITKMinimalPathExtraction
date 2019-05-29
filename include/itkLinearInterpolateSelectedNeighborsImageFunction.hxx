@@ -51,10 +51,9 @@ namespace itk
   for ( unsigned int dim = 0; dim < ImageDimension; ++dim )
     {
     baseIndex[dim] = Math::Floor< IndexValueType >(index[dim]);
-    distance[dim] = index[dim] - static_cast< InternalComputationType >( baseIndex[dim] );
+    distance[dim] = index[dim] - static_cast< InternalComputationType >( baseIndex[dim] );    
     }
-
-  // The iInterpolated value is the weighted sum of each of the surrounding
+  // The interpolated value is the weighted sum of each of the surrounding
   // neighbors. The weight for each neighbor is the fraction overlap
   // of the neighbor pixel with respect to a pixel centered on point.
 
@@ -72,7 +71,8 @@ namespace itk
 
   // Number of neighbors used in the interpolation
   constexpr unsigned long numberOfNeighbors = 1 << TInputImage::ImageDimension;
-
+  InternalComputationType TotalOverlap = 0.0;
+  
   for ( unsigned int counter = 0; counter < numberOfNeighbors; ++counter )
     {
     InternalComputationType overlap = 1.0;    // Fraction overlap
@@ -109,11 +109,12 @@ namespace itk
     InputPixelType nval = inputImagePtr->GetPixel(neighIndex);
       
     if (m_NeighborCheck(nval))
-      {
+      { 
+      TotalOverlap += overlap;
       value += static_cast< RealType >( nval ) * overlap;
       }
     }
-  return ( static_cast< OutputType >( value ) );
+  return ( static_cast< OutputType >( value/TotalOverlap ) );
 }
 
   template< typename TInputImage, typename TCoordRep, typename TNeighborCheckFunction >
