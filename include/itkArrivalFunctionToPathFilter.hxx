@@ -170,7 +170,8 @@ ArrivalFunctionToPathFilter<TInputImage,TOutputPath>
   typename CommandType::Pointer observer = CommandType::New();
   observer->SetFilter( this );
 
-  unsigned long observerTag = m_Optimizer->AddObserver( itk::IterationEvent(), observer );
+  unsigned long observerTagIter = m_Optimizer->AddObserver( itk::IterationEvent(), observer );
+  unsigned long observerTagEnd = m_Optimizer->AddObserver( itk::EndEvent(), observer );
 
   // Do for each output
   for ( unsigned int n=0; n<numberOfOutputs; n++ )
@@ -206,11 +207,15 @@ ArrivalFunctionToPathFilter<TInputImage,TOutputPath>
     m_Optimizer->SetInitialPosition( end );
 
     // Use optimizer to back propagate from end point
-    m_Optimizer->StartOptimization( );
+    m_TrackingPath = false;
+    do {
+        m_Optimizer->StartOptimization( );
+    } while ( m_TrackingPath );
     }
 
   // Clean up by removing observer
-  m_Optimizer->RemoveObserver( observerTag );
+  m_Optimizer->RemoveObserver( observerTagIter );
+  m_Optimizer->RemoveObserver( observerTagEnd );
 }
 
 template <typename TInputImage, typename TOutputPath>

@@ -185,7 +185,8 @@ protected:
   std::vector< typename PathInformationType::Pointer > m_Information;
   InputImagePointer                                    m_CurrentArrivalFunction;
 
-typename InputImageType::SizeType::SizeValueType       m_TargetRadius;
+  typename InputImageType::SizeType::SizeValueType     m_TargetRadius;
+
 };
 
 } // end namespace itk
