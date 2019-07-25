@@ -289,7 +289,6 @@ int Test_SpeedToPath_GradientDescent_ND(int argc, char* argv[])
         pathFilter->Update( );
         time.Stop( );
         std::cout << std::setprecision(3) << "Path computed in: " << time.GetMean() << " seconds" << std::endl;
-
         // Allocate output image
         typename OutputImageType::Pointer output = OutputImageType::New();
         output->SetRegions( speed->GetLargestPossibleRegion() );
@@ -399,7 +398,8 @@ int Test_SpeedToPath_RegularStepGradientDescent_ND(int argc, char* argv[])
             if (spacing[dim] < minspacing) minspacing = spacing[dim];
 
         // Create Interpolator
-        using InterpolatorType = itk::LinearInterpolateImageFunction<ImageType, CoordRepType>;
+	using InterpolatorType = itk::LinearInterpolateSelectedNeighborsImageFunction<ImageType, CoordRepType, ValidNeighbor<typename PathFilterType::InputImagePixelType> >;
+        //using InterpolatorType = itk::LinearInterpolateImageFunction<ImageType, CoordRepType>;
         typename InterpolatorType::Pointer interp = InterpolatorType::New();
 
         // Create Cost Function
