@@ -36,6 +36,8 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
 {
   m_CurrentArrivalFunction = nullptr;
   m_TargetRadius = 2;
+  m_AutoTerminate = true;
+  m_AutoTerminateFactor = 0.5;
 }
 
 
@@ -118,6 +120,48 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
   return(UniqueIndexes);
 }
 
+  template<typename TInputImage, typename TOutputPath>
+typename SpeedFunctionToPathFilter<TInputImage,TOutputPath>::InputImagePixelType
+SpeedFunctionToPathFilter<TInputImage,TOutputPath>
+::GetTrialGradient(IndexTypeVec idxs)
+{
+  InputImagePointer arrival =  m_CurrentArrivalFunction;
+
+  using BoundaryConditionType = ConstantBoundaryCondition<InputImageType>;
+
+  IndexTypeSet UniqueIndexes;
+  typename InputImageType::SizeType radius;
+  radius.Fill(1);
+  ConstNeighborhoodIterator<InputImageType, BoundaryConditionType>
+    niterator(radius, arrival, arrival->GetLargestPossibleRegion());
+
+  BoundaryConditionType bc;
+  bc.SetConstant(itk::NumericTraits<InputImagePixelType>::max());
+  niterator.SetBoundaryCondition(bc);
+  niterator.NeedToUseBoundaryConditionOn();
+
+  // looking for the smallest nonzero difference
+  InputImagePixelType mindiff(itk::NumericTraits<InputImagePixelType>::max());
+  
+  for (auto it = idxs.begin(); it != idxs.end(); it++ )
+    {
+      niterator.SetLocation(*it);
+      InputImagePixelType CP = niterator.GetCenterPixel();
+      // Visit the entire neighborhood (including center) and
+      // add any pixel that has a nonzero arrival function value
+      for (auto NB = 0; NB < niterator.Size(); NB++)
+	{
+	  // CP values should always be zero
+	  InputImagePixelType NPD = niterator.GetPixel(NB) - CP;
+	  if (NPD  > 0 ) 
+	    {
+	      mindiff=std::min(mindiff, NPD);
+	    }
+	}
+    }
+
+  return(mindiff);
+}
 /**
  *
  */
@@ -139,7 +183,6 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
   marching->SetInput( speed );
   marching->SetGenerateGradientImage( false );
   marching->SetTargetReachedModeToAllTargets( );
-  //marching->SetTargetOffset( 2.0 * Superclass::m_TerminationValue);
   // Add next and previous front sources as target points to
   // limit the front propagation to just the required zones
   PointsContainerType PrevFront = m_Information[Superclass::m_CurrentOutput]->PeekPreviousFront();
@@ -156,6 +199,7 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
       NodeType nodeTargetPrevious;
       speed->TransformPhysicalPointToIndex( *it, indexTargetPrevious );
       PrevIndexVec.push_back(indexTargetPrevious);
+      //std::cerr << "PrevTarg " << indexTargetPrevious << std::endl;
     }
   
   for (auto it = NextFront.begin(); it != NextFront.end(); it++)
@@ -164,6 +208,8 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
       NodeType nodeTargetNext;
       speed->TransformPhysicalPointToIndex( *it, indexTargetNext );
       NextIndexVec.push_back(indexTargetNext);
+      //std::cerr << "NextTarg " << indexTargetNext << std::endl;
+
     }
 
   IndexTypeVec AllTargets( PrevIndexVec );
@@ -197,6 +243,8 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
       nodeTrial.SetIndex( indexTrial );
       trial->InsertElement( trial->Size(), nodeTrial );
       CurrentIndexVec.push_back(indexTrial);
+      //std::cerr << "TrialPt " << indexTrial << std::endl;
+
     }
   marching->SetTrialPoints( trial );
 
@@ -222,9 +270,19 @@ SpeedFunctionToPathFilter<TInputImage,TOutputPath>
      m_Information[Superclass::m_CurrentOutput]->SetPrevious(PrevFront[MinPos]);
   }
 
+  if (m_AutoTerminate)
+    {
+      // Examine the neighbours of the trial points to determine the minimum neighbour
+      // difference, for the purpose of estimating a good termination value.
+      InputImagePixelType MD = GetTrialGradient( CurrentIndexVec );
+      std::cout << "Min diff for termination = " << MD << std::endl;
+      this->SetTerminationValue( MD * this->GetAutoTerminateFactor() );
+    }
   // Make the arrival function flat inside the seeds, otherwise the
   // optimizer will cross over them. This only matters if the seeds are extended
-  if (CurrentIndexVec.size() > 1)
+  // Not sure that this is needed any more. Expect it was a side effect of only
+  // adding a single point to the trial set.
+  if ( CurrentIndexVec.size() > 1 )
     {
       for (auto vi = CurrentIndexVec.begin(); vi != CurrentIndexVec.end(); vi++)
         {
